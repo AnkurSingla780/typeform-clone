@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useRef, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { FormDetail, Question, QuestionType } from '@/lib/types';
+import { FormDetail, Question, QuestionType, QuestionUpdateInput } from '@/lib/types';
 import { api } from '@/lib/api';
 import { BuilderTopNav } from '@/components/builder/BuilderTopNav';
 import { QuestionPalette } from '@/components/builder/QuestionPalette';
@@ -27,6 +27,76 @@ export default function FormEditPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+
+  const formRef = useRef<FormDetail | null>(form);
+  formRef.current = form;
+  const saveVersionRef = useRef<Record<number, number>>({});
+  const debounceTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  const persistQuestionRef = useRef<(questionId: number, version: number) => Promise<void>>(
+    async () => {}
+  );
+
+  const TEXT_SAVE_DEBOUNCE_MS = 600;
+
+  const clearDebounce = (questionId: number) => {
+    const timers = debounceTimersRef.current;
+    if (timers[questionId]) {
+      clearTimeout(timers[questionId]);
+      delete timers[questionId];
+    }
+  };
+
+  persistQuestionRef.current = async (questionId: number, version: number) => {
+    const current = formRef.current?.questions.find((q) => q.id === questionId);
+    if (!current) return;
+    if (version !== saveVersionRef.current[questionId]) return;
+    if (!current.title.trim()) return;
+
+    const payload: QuestionUpdateInput = {
+      title: current.title,
+      description: current.description,
+      type: current.type,
+      required: current.required,
+      position: current.position,
+      options: current.options?.map((o, idx) => ({
+        label: o.label,
+        position: o.position ?? idx,
+      })),
+    };
+
+    try {
+      const updated = await api.updateQuestion(questionId, payload);
+
+      if (version !== saveVersionRef.current[questionId]) return;
+
+      setForm((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          questions: prev.questions.map((q) => {
+            if (q.id !== questionId) return q;
+            return {
+              ...updated,
+              title: q.title.trim() === '' ? q.title : updated.title,
+            };
+          }),
+        };
+      });
+    } catch (err: any) {
+      if (version !== saveVersionRef.current[questionId]) return;
+      toast.error(err.message || 'Failed to update question');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      const timers = debounceTimersRef.current;
+      Object.keys(timers).forEach((id) => {
+        clearTimeout(timers[Number(id)]);
+        delete timers[Number(id)];
+      });
+    };
+  }, []);
 
   useEffect(() => {
     async function loadForm() {
@@ -110,46 +180,60 @@ export default function FormEditPage({ params }: PageProps) {
     questionId: number,
     data: Partial<Question>
   ) => {
-    // Optimistic local state update
-    setForm((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        questions: prev.questions.map((q) =>
-          q.id === questionId ? { ...q, ...data } : q
-        ),
-      };
-    });
+    const previous = formRef.current?.questions.find((q) => q.id === questionId);
 
-    try {
-      const updated = await api.updateQuestion(questionId, {
-        title: data.title,
-        description: data.description,
-        type: data.type,
-        required: data.required,
-        position: data.position,
-        options: data.options?.map((o, idx) => ({
-          label: o.label,
-          position: o.position ?? idx,
-        })),
-      });
+    const version = (saveVersionRef.current[questionId] ?? 0) + 1;
+    saveVersionRef.current[questionId] = version;
 
-      // Sync backend state
-      setForm((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          questions: prev.questions.map((q) =>
-            q.id === questionId ? updated : q
-          ),
-        };
-      });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update question');
+    const previousForm = formRef.current;
+    if (!previousForm) return;
+
+    const nextForm: FormDetail = {
+      ...previousForm,
+      questions: previousForm.questions.map((q) =>
+        q.id === questionId ? { ...q, ...data } : q
+      ),
+    };
+
+    setForm(nextForm);
+    formRef.current = nextForm;
+
+    const optionCountChanged =
+      data.options !== undefined &&
+      (previous?.options?.length ?? 0) !== data.options.length;
+
+    const isTextEdit =
+      data.type === undefined &&
+      data.required === undefined &&
+      data.position === undefined &&
+      !optionCountChanged &&
+      (data.title !== undefined ||
+        data.description !== undefined ||
+        data.options !== undefined);
+
+    if (isTextEdit) {
+      clearDebounce(questionId);
+
+      const nextQuestion = formRef.current.questions.find((q) => q.id === questionId);
+      if (nextQuestion && !nextQuestion.title.trim()) {
+        return;
+      }
+
+      debounceTimersRef.current[questionId] = setTimeout(() => {
+        delete debounceTimersRef.current[questionId];
+        const latestVersion = saveVersionRef.current[questionId];
+        void persistQuestionRef.current(questionId, latestVersion);
+      }, TEXT_SAVE_DEBOUNCE_MS);
+      return;
     }
+
+    clearDebounce(questionId);
+    await persistQuestionRef.current(questionId, version);
   };
 
   const handleDeleteQuestion = async (questionId: number) => {
+    clearDebounce(questionId);
+    saveVersionRef.current[questionId] = (saveVersionRef.current[questionId] ?? 0) + 1;
     try {
       await api.deleteQuestion(questionId);
       setForm((prev) => {

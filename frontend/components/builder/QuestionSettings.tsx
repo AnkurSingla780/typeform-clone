@@ -178,8 +178,17 @@ export function QuestionSettings({
                 value={question.title}
                 onChange={handleTitleChange}
                 placeholder="What would you like to ask?"
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className={`w-full px-3 py-2 bg-white border rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                  !question.title.trim()
+                    ? 'border-rose-300 focus:ring-rose-400'
+                    : 'border-slate-200'
+                }`}
               />
+              {!question.title.trim() && (
+                <p className="mt-1 text-[11px] font-medium text-rose-600">
+                  Question title is required
+                </p>
+              )}
             </div>
 
             {/* Description / Help text */}
