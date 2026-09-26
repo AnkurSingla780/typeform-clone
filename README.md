@@ -1,300 +1,815 @@
 # Typeform Builder Clone
 
+A full-stack Typeform-inspired form builder and survey platform built for the **SDE Fullstack Assignment**.
+
+Creators can build and manage forms using a visual builder, publish shareable forms, collect responses through a conversational one-question-at-a-time interface, and analyze submitted responses through statistics and individual response views.
+
+## Live Demo
+
+* **Frontend:** https://typeform-clone-steel.vercel.app/
+* **GitHub:** https://github.com/AnkurSingla780/typeform-clone
+* **Backend API:** https://typeform-clone-rpgx.onrender.com
+* **API Documentation (Swagger):** https://typeform-clone-rpgx.onrender.com/docs
+* **Backend Health Check:** https://typeform-clone-rpgx.onrender.com/health
+* **Sample Published Form:** https://typeform-clone-steel.vercel.app/f/customer-feedback
+
+> The frontend is deployed on Vercel and the FastAPI backend is deployed on Render.
+
+---
+
 ## Overview
 
-Typeform Builder Clone is a full-stack form creation and survey collection platform that replicates the core workflows of Typeform. Creators can build, customize, reorder, and manage forms with a visual canvas and real-time settings inspector, while respondents enjoy a conversational, keyboard-accessible, one-question-at-a-time experience. Completed submissions are stored in SQLite and visualized via aggregated analytics and individual response views with CSV export capabilities.
+The application replicates the core Typeform workflow:
+
+1. Create a form.
+2. Add and configure questions.
+3. Reorder questions.
+4. Preview the form.
+5. Publish the form.
+6. Share the public form URL.
+7. Collect responses.
+8. View response statistics and individual submissions.
+9. Export responses as CSV.
+
+The application uses a **Next.js + TypeScript frontend**, **FastAPI backend**, **SQLAlchemy ORM**, and **SQLite database**.
 
 ---
 
-## Features
+# Features
 
-- **Form Builder**:
-  - Drag-and-drop question reordering as well as sequential arrow controls.
-  - Interactive right-hand question inspector for editing titles, descriptions, question types, and required constraints.
-  - Choice and dropdown option manager (add, edit, remove options).
-  - Live modal preview to test form interaction without writing responses to the database.
-- **Supported Question Types (9 types)**:
-  1. `short_text`: Single-line text input with Enter navigation.
-  2. `long_text`: Multi-line textarea (Shift+Enter for newline, Enter to proceed).
-  3. `multiple_choice`: Choice selection with single-key shortcuts (`A`, `B`, `C`, `D` badges).
-  4. `dropdown`: Select dropdown for categorized answers.
-  5. `email`: Email input with email pattern validation.
-  6. `number`: Numeric input with numeric validation.
-  7. `yes_no`: Large toggle buttons with keyboard shortcuts (`Y` / `N`).
-  8. `rating`: 1–5 star rating with mouse hover states and keyboard shortcut selection (`1`–`5`).
-  9. `date`: ISO date input with date picker.
-- **Form Management (CRUD & Lifecycle)**:
-  - Create, view, update title (inline and modal), and delete forms with confirmation dialogues.
-  - Form duplication (duplicates form metadata, questions, and all configured options).
-  - Publish / Unpublish toggling (only published forms are accessible to public respondents; draft forms return 404).
-  - Shareable public link modal with one-click copy to clipboard.
-- **Public Respondent Flow**:
-  - Conversational one-question-at-a-time transition flow at `/f/[slug]`.
-  - Progress indicator bar and step counter (`Question X of Y`).
-  - Smooth keyboard navigation (Enter, Arrow Up/Down, key shortcuts).
-  - Client-side and server-side validation for required fields and data types.
-  - Thank-you completion screen after submission.
-- **Responses & Analytics**:
-  - Form responses summary dashboard.
-  - Question-by-question statistical breakdown (choice distribution percentages, average ratings, total answer counts).
-  - Individual response inspector to view all answers submitted by a specific respondent.
-  - CSV export for downloading submission data.
-- **Seed Data**:
-  - Automatic, idempotent database seeder that populates sample published and draft forms with realistic questions and responses.
+## Form Builder
 
----
+* Create new forms.
+* Edit form title and description.
+* Add questions from the question palette.
+* Edit question titles and descriptions.
+* Mark questions as required or optional.
+* Delete questions.
+* Reorder questions.
+* Configure question options for choice-based questions.
+* Live form preview.
+* Toast notifications for user actions.
+* Loading, empty, and error states.
+* Debounced question autosave to avoid sending an API request for every keystroke.
 
-## Tech Stack
+## Supported Question Types
 
-### Frontend
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
+The application currently supports:
 
-### Backend
-- **Framework**: Python 3.9+ / FastAPI
-- **ORM**: SQLAlchemy
-- **Server**: Uvicorn
+| Type              | Description                             |
+| ----------------- | --------------------------------------- |
+| `short_text`      | Single-line text input                  |
+| `long_text`       | Multi-line text input                   |
+| `multiple_choice` | Select one option from multiple choices |
+| `dropdown`        | Select an option from a dropdown        |
+| `email`           | Email input with validation             |
+| `number`          | Numeric input with validation           |
+| `yes_no`          | Yes/No selection                        |
+| `rating`          | Rating from 1–5                         |
+| `date`            | Date input                              |
 
-### Database
-- **Engine**: SQLite with foreign key constraints enabled
+## Form Management
 
----
+* Create forms.
+* Rename forms.
+* Update form details.
+* Delete forms with confirmation.
+* Duplicate forms including their questions and configured options.
+* Publish forms.
+* Unpublish forms.
+* Draft/published status.
+* Shareable public form URLs.
+* Copy share link to clipboard.
+* Dashboard with response counts.
+* Search and filtering.
 
-## Architecture
+## Public Respondent Experience
 
-```
-Frontend (Next.js App Router / React / TypeScript)
-       │
-       ▼
-API Client Layer (`frontend/lib/api.ts`)
-       │  (HTTP / JSON REST)
-       ▼
-FastAPI Routers (`backend/app/routers/`)
-       │
-       ▼
-Service Layer (`backend/app/services/`)
-       ├── form_service.py       (Form CRUD, slug generation, duplicate, publish)
-       ├── question_service.py   (Question CRUD, reordering, options management)
-       ├── validation_service.py (Field-level validation per question type)
-       └── response_service.py   (Submission parsing, stats aggregation, exports)
-       │
-       ▼
-SQLAlchemy ORM Models (`backend/app/models/`)
-       │
-       ▼
-SQLite Database (`typeform.db`)
+Published forms are available through:
+
+```text
+/f/[slug]
 ```
 
-### Separation of Concerns
-- **Routers**: Handle request routing, parameter extraction, and HTTP status codes.
-- **Services**: Contain all domain logic, transaction handling, and business rules.
-- **Models**: Define database schema, relationships, cascades, and constraints.
-- **Schemas**: Handle input validation and response serialization with Pydantic v2.
-- **Frontend Components**: Structured into builder components (`components/builder`), question renderers (`components/questions`), and generic UI elements (`components/ui`).
+The respondent flow provides:
+
+* One-question-at-a-time conversational interface.
+* Progress indicator.
+* Question counter.
+* Smooth transitions.
+* Keyboard navigation.
+* Question-specific input controls.
+* Required-field validation.
+* Client-side validation.
+* Server-side validation.
+* Submission persistence.
+* Thank-you completion screen.
+
+Draft forms cannot be accessed through the public respondent route.
+
+## Responses & Analytics
+
+Creators can:
+
+* View all submitted responses.
+* Open an individual response.
+* View answers question-by-question.
+* View aggregate statistics.
+* View answer counts.
+* View option distributions.
+* View average ratings.
+* Export responses as CSV.
 
 ---
 
-## Project Structure
+# Tech Stack
 
+## Frontend
+
+* **Next.js 16**
+* **React**
+* **TypeScript**
+* **Tailwind CSS**
+* **Lucide React**
+
+## Backend
+
+* **Python**
+* **FastAPI**
+* **SQLAlchemy**
+* **Pydantic**
+* **Uvicorn**
+
+## Database
+
+* **SQLite**
+* Foreign-key constraints enabled.
+
+## Deployment
+
+* **Vercel** — Frontend
+* **Render** — Backend API
+
+---
+
+# Architecture
+
+```text
+                    ┌─────────────────────────┐
+                    │     Next.js Frontend    │
+                    │ React + TypeScript      │
+                    │ Tailwind CSS             │
+                    └────────────┬────────────┘
+                                 │
+                                 │ HTTP / JSON
+                                 ▼
+                    ┌─────────────────────────┐
+                    │      API Client         │
+                    │ frontend/lib/api.ts     │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │      FastAPI API        │
+                    │       Routers           │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │      Service Layer      │
+                    │                         │
+                    │ Form Service             │
+                    │ Question Service         │
+                    │ Response Service        │
+                    │ Validation Service       │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │    SQLAlchemy ORM       │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │       SQLite DB         │
+                    │      typeform.db        │
+                    └─────────────────────────┘
 ```
+
+## Separation of Concerns
+
+### Routers
+
+Handle:
+
+* HTTP requests.
+* Parameters.
+* Request/response handling.
+* HTTP status codes.
+
+### Services
+
+Contain:
+
+* Business logic.
+* Form operations.
+* Question operations.
+* Response processing.
+* Validation.
+* Statistics generation.
+
+### Models
+
+Define:
+
+* Database tables.
+* Relationships.
+* Foreign keys.
+* Cascade behavior.
+
+### Schemas
+
+Pydantic models handle:
+
+* Request validation.
+* Response serialization.
+* API data structures.
+
+### Frontend Components
+
+The frontend is separated into:
+
+```text
+components/
+├── builder/
+├── questions/
+└── ui/
+```
+
+---
+
+# Project Structure
+
+```text
 typeform-clone/
+│
 ├── backend/
 │   ├── app/
-│   │   ├── core/           # Config, database engine, session factory
-│   │   ├── models/         # SQLAlchemy models (User, Form, Question, Option, Response, Answer)
-│   │   ├── routers/        # FastAPI route handlers (forms, questions, public, responses)
-│   │   ├── schemas/        # Pydantic schemas for requests and responses
-│   │   ├── seed/           # Idempotent database seeder
-│   │   ├── services/       # Domain business logic and validation
-│   │   └── main.py         # FastAPI application entrypoint and lifespan hooks
-│   ├── .env.example
+│   │   ├── core/
+│   │   │   ├── config.py
+│   │   │   └── database.py
+│   │   │
+│   │   ├── models/
+│   │   │   ├── user.py
+│   │   │   ├── form.py
+│   │   │   ├── question.py
+│   │   │   ├── option.py
+│   │   │   ├── response.py
+│   │   │   └── answer.py
+│   │   │
+│   │   ├── routers/
+│   │   │   ├── forms.py
+│   │   │   ├── questions.py
+│   │   │   ├── public.py
+│   │   │   └── responses.py
+│   │   │
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── seed/
+│   │   └── main.py
+│   │
 │   ├── requirements.txt
-│   └── typeform.db
+│   └── .env.example
+│
 ├── frontend/
 │   ├── app/
-│   │   ├── f/[slug]/       # Public respondent form page
+│   │   ├── f/[slug]/
 │   │   ├── forms/
-│   │   │   ├── [id]/edit/  # 3-column form builder
-│   │   │   ├── [id]/responses/ # Analytics, individual responses & CSV export
-│   │   │   └── new/        # Standalone form creation
-│   │   ├── layout.tsx      # Root layout with ToastProvider
-│   │   └── page.tsx        # Dashboard with form list & stats
+│   │   │   ├── new/
+│   │   │   └── [id]/
+│   │   │       ├── edit/
+│   │   │       └── responses/
+│   │   │
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   │
 │   ├── components/
-│   │   ├── builder/        # QuestionCanvas, QuestionPalette, QuestionSettings, TopNav, Preview
-│   │   ├── questions/      # QuestionRenderer and individual question type components
-│   │   └── ui/             # Reusable UI components (Modal, Toasts)
-│   ├── context/            # ToastContext for global alerts
-│   ├── lib/                # api.ts (REST client), types.ts (TypeScript definitions)
-│   ├── .env.example
+│   │   ├── builder/
+│   │   ├── questions/
+│   │   └── ui/
+│   │
+│   ├── context/
+│   ├── hooks/
+│   ├── lib/
+│   ├── public/
 │   └── package.json
+│
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Database Schema
+# Database Schema
 
-The database uses SQLite with foreign key enforcement enabled (`PRAGMA foreign_keys=ON`).
-
+```text
+users
+  │
+  │ 1:N
+  ▼
+forms
+  │
+  ├─────────────── 1:N ───────────────► questions
+  │                                      │
+  │                                      │ 1:N
+  │                                      ▼
+  │                                   options
+  │
+  │ 1:N
+  ▼
+responses
+  │
+  │ 1:N
+  ▼
+answers
 ```
-┌──────────────┐       1:N      ┌──────────────┐       1:N      ┌──────────────┐
-│    users     │───────────────▶│    forms     │───────────────▶│  questions   │
-└──────────────┘                └──────────────┘                └──────────────┘
-                                       │                               │
-                                   1:N │                           1:N │
-                                       ▼                               ▼
-                                ┌──────────────┐       1:N      ┌──────────────┐
-                                │  responses   │───────────────▶│   options    │
-                                └──────────────┘                └──────────────┘
-                                       │
-                                   1:N │
-                                       ▼
-                                ┌──────────────┐
-                                │   answers    │◀────────────── (references question_id)
-                                └──────────────┘
+
+## Main Tables
+
+### `users`
+
+Stores form creators.
+
+```text
+id
+name
+email
+created_at
 ```
 
-### Table Details:
-1. **`users`**: Form creators/owners.
-   - `id` (PK, Integer), `name` (String), `email` (String, Unique), `created_at` (DateTime).
-2. **`forms`**: Form configuration and metadata.
-   - `id` (PK, Integer), `creator_id` (FK -> `users.id`), `title` (String), `description` (Text), `slug` (String, Unique), `status` (`published` | `draft`), `created_at` (DateTime), `updated_at` (DateTime).
-3. **`questions`**: Individual form questions.
-   - `id` (PK, Integer), `form_id` (FK -> `forms.id`, ON DELETE CASCADE), `title` (String), `description` (Text), `type` (String), `required` (Boolean), `position` (Integer), `created_at` (DateTime), `updated_at` (DateTime).
-4. **`options`**: Selectable choices for `multiple_choice` and `dropdown` questions.
-   - `id` (PK, Integer), `question_id` (FK -> `questions.id`, ON DELETE CASCADE), `label` (String), `position` (Integer).
-5. **`responses`**: Form submission sessions.
-   - `id` (PK, Integer), `form_id` (FK -> `forms.id`, ON DELETE CASCADE), `submitted_at` (DateTime).
-6. **`answers`**: Individual answers stored within a response.
-   - `id` (PK, Integer), `response_id` (FK -> `responses.id`, ON DELETE CASCADE), `question_id` (FK -> `questions.id`, ON DELETE CASCADE), `value` (Text).
+### `forms`
+
+Stores form metadata.
+
+```text
+id
+creator_id
+title
+description
+slug
+status
+created_at
+updated_at
+```
+
+`status` can be:
+
+```text
+draft
+published
+```
+
+### `questions`
+
+Stores individual form questions.
+
+```text
+id
+form_id
+title
+description
+type
+required
+position
+created_at
+updated_at
+```
+
+### `options`
+
+Stores choices for multiple-choice and dropdown questions.
+
+```text
+id
+question_id
+label
+position
+```
+
+### `responses`
+
+Stores submitted response sessions.
+
+```text
+id
+form_id
+submitted_at
+```
+
+### `answers`
+
+Stores individual answers.
+
+```text
+id
+response_id
+question_id
+value
+```
+
+Foreign-key cascade deletion is used so deleting a form removes its associated questions, options, responses, and answers.
 
 ---
 
-## API Overview
+# API
 
-All API endpoints are prefixed with `/api`.
+All API routes use the `/api` prefix.
 
-### Forms
-- `GET /api/forms`: List all forms for the default creator with question and response counts.
-- `POST /api/forms`: Create a new form (body: `title`, `description`).
-- `GET /api/forms/{id}`: Fetch detailed form data including questions and options.
-- `PUT /api/forms/{id}`: Update form details (`title`, `description`, `status`).
-- `DELETE /api/forms/{id}`: Delete a form and cascade delete its questions, options, responses, and answers.
-- `POST /api/forms/{id}/duplicate`: Duplicate a form along with its questions and options.
-- `POST /api/forms/{id}/publish`: Mark form status as `published`.
-- `POST /api/forms/{id}/unpublish`: Revert form status to `draft`.
+## Forms
 
-### Questions
-- `POST /api/forms/{id}/questions`: Add a question to a form.
-- `PUT /api/forms/{id}/questions/reorder`: Update question ordering positions (body: `question_ids`).
-- `PUT /api/questions/{id}`: Update question attributes (`title`, `description`, `type`, `required`, `options`).
-- `DELETE /api/questions/{id}`: Delete a question (automatically re-compacts positions of remaining questions).
+```text
+GET    /api/forms
+POST   /api/forms
+GET    /api/forms/{id}
+PUT    /api/forms/{id}
+DELETE /api/forms/{id}
 
-### Public Respondent Endpoints
-- `GET /api/public/forms/{slug}`: Fetch published form structure for respondents (returns 404 if draft or not found).
-- `POST /api/public/forms/{slug}/responses`: Submit respondent answers for validation and persistence.
+POST   /api/forms/{id}/duplicate
+POST   /api/forms/{id}/publish
+POST   /api/forms/{id}/unpublish
+```
 
-### Responses & Analytics
-- `GET /api/forms/{id}/responses`: List all submissions for a given form.
-- `GET /api/responses/{id}`: Fetch detailed answer breakdown for a single response.
-- `GET /api/forms/{id}/statistics`: Get aggregate statistics (answer counts, option frequency, average ratings) per question.
+## Questions
+
+```text
+POST   /api/forms/{id}/questions
+PUT    /api/forms/{id}/questions/reorder
+
+PUT    /api/questions/{id}
+DELETE /api/questions/{id}
+```
+
+## Public Forms
+
+```text
+GET  /api/public/forms/{slug}
+POST /api/public/forms/{slug}/responses
+```
+
+## Responses
+
+```text
+GET /api/forms/{id}/responses
+GET /api/forms/{id}/statistics
+GET /api/responses/{id}
+```
+
+Interactive API documentation is available through Swagger:
+
+https://typeform-clone-rpgx.onrender.com/docs
 
 ---
 
-## Setup & Running Locally
+# Local Development
 
-### Prerequisites
-- Node.js 18+ and npm
-- Python 3.9+
+## Prerequisites
 
-### 1. Backend Setup
+* Node.js 18+
+* npm
+* Python 3.9+
+
+## Backend
 
 ```bash
 cd backend
 
-# Create virtual environment (if not already present)
 python3 -m venv .venv
-
-# Activate virtual environment
-# On macOS / Linux:
 source .venv/bin/activate
-# On Windows:
-# .venv\Scripts\activate
 
-# Install dependencies
 pip install -r requirements.txt
 
-# Start FastAPI server (runs on http://localhost:8000)
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Interactive API documentation will be available at [http://localhost:8000/docs](http://localhost:8000/docs).
+Backend:
 
-### 2. Frontend Setup
+```text
+http://localhost:8000
+```
+
+Swagger:
+
+```text
+http://localhost:8000/docs
+```
+
+## Frontend
+
+Open another terminal:
 
 ```bash
 cd frontend
 
-# Install dependencies
 npm install
-
-# Start Next.js development server (runs on http://localhost:3000)
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) in your browser.
+Frontend:
+
+```text
+http://localhost:3000
+```
 
 ---
 
-## Environment Variables
+# Environment Variables
 
-### Frontend (`frontend/.env.local` or environment)
-```env
-# Optional: defaults to http://localhost:8000/api if not set
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
-```
+## Backend
 
-### Backend (`backend/.env` or environment)
+Create `backend/.env` if required:
+
 ```env
-# Optional: defaults to SQLite at ./typeform.db
 DATABASE_URL=sqlite:///./typeform.db
-# Optional: frontend origin for CORS
 FRONTEND_URL=http://localhost:3000
 ```
 
----
+## Frontend
 
-## Seed Data
+For local development, the API client can use the local backend:
 
-The project includes an automatic, idempotent seeder in `backend/app/seed/seed.py`:
-- Runs automatically when the backend starts if no forms exist in the database.
-- Seeds a default creator user (`creator@typeformclone.local`).
-- Creates 3 sample forms:
-  1. **Customer Feedback** (Published): 8 questions covering various question types, with 5 pre-populated realistic response submissions.
-  2. **Employee Satisfaction Survey** (Published): 6 questions with 3 pre-populated response submissions.
-  3. **Product Launch Beta Waitlist** (Draft): 2 questions, testing draft state protection.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+```
 
----
+For the deployed application, the frontend communicates with the deployed Render backend:
 
-## Design Decisions / Assumptions
-
-1. **Authentication Scope**: Per the assignment requirements, a default creator account is utilized (`creator_id = 1`) to focus on form building, public respondent interaction, and response analytics without requiring login barriers.
-2. **Public Access Model**: Only forms with `status = "published"` can be retrieved and submitted by the public respondent route `/f/[slug]`. Draft forms return a 404 response to public requests.
-3. **Database Engine**: SQLite was chosen as requested in the assignment for zero-configuration, self-contained local persistence. Foreign key cascade deletes are explicitly enabled in SQLite connections.
-4. **Validation Strategy**:
-   - Client-side validation prevents empty submissions for required fields and formats input values (e.g. Email regex, Number boundaries, Date formats).
-   - Server-side validation (`validation_service.py`) re-verifies required constraints, email formats, numeric conversions, yes/no values, rating ranges (1–5), and validates choice inputs against allowed options.
-5. **Response Storage**: Answers are stored as text values associated with `response_id` and `question_id`, allowing flexible representation across text, numbers, choice labels, and dates.
+```text
+https://typeform-clone-rpgx.onrender.com/api
+```
 
 ---
 
-## Future / Placeholder Features
+# Seed Data
 
-The following items are natural extensions for production systems and are documented as potential roadmap additions:
-- **Logic Jumps / Conditional Branching**: Displaying or skipping questions dynamically based on prior answers.
-- **Third-Party Integrations**: Webhook delivery, Slack notifications, or Google Sheets synchronization on new submissions.
-- **Team Collaboration & Multi-Tenancy**: Granular role-based permissions (Viewer, Editor, Admin) and workspaces.
-- **Custom Themes & Styling**: User-defined custom color palettes, background images, and font selectors per form.
+The project includes an idempotent seed process.
+
+Sample forms include:
+
+### Customer Feedback
+
+Published sample form containing mixed question types and sample responses.
+
+### Employee Satisfaction Survey
+
+Published survey with multiple question types and sample submissions.
+
+### Product Launch Beta Waitlist
+
+Draft form used to demonstrate draft-state protection.
+
+The deployed demo includes seeded sample data.
+
+---
+
+# Deployment
+
+## Frontend — Vercel
+
+The Next.js application is deployed on Vercel.
+
+```text
+https://typeform-clone-steel.vercel.app/
+```
+
+The frontend project uses:
+
+```text
+Root Directory: frontend
+Framework: Next.js
+```
+
+Deployment is connected to the GitHub repository and updates can be deployed from the `main` branch.
+
+## Backend — Render
+
+The FastAPI backend is deployed on Render.
+
+```text
+https://typeform-clone-rpgx.onrender.com
+```
+
+### Build Command
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+### Start Command
+
+```bash
+cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+### Health Check
+
+```text
+/health
+```
+
+Health endpoint:
+
+https://typeform-clone-rpgx.onrender.com/health
+
+---
+
+# Deployment Note
+
+The deployed backend currently uses SQLite.
+
+SQLite is appropriate for this assignment and demo because it requires no external database service. However, the free Render environment uses the service filesystem, so SQLite data should **not be considered production-grade persistent storage**. Data can be lost when the service is recreated or its filesystem is reset.
+
+For a production deployment, SQLite would be replaced with a persistent database such as PostgreSQL.
+
+---
+
+# Validation
+
+Validation is implemented at both frontend and backend levels.
+
+## Client-Side
+
+The frontend provides immediate feedback for:
+
+* Required fields.
+* Email format.
+* Number input.
+* Rating range.
+* Valid choices.
+* Other question-specific constraints.
+
+## Server-Side
+
+The backend independently validates submitted responses before persistence.
+
+This includes:
+
+* Required questions.
+* Email format.
+* Numeric values.
+* Yes/No values.
+* Rating range `1–5`.
+* Valid multiple-choice options.
+* Valid dropdown options.
+* Date values.
+
+Server-side validation ensures that public API requests cannot bypass frontend validation.
+
+---
+
+# Design Decisions
+
+## Authentication
+
+The assignment does not require creator authentication, so the application uses a default creator account rather than implementing a full authentication system.
+
+This keeps the focus on the required form-building, respondent, and response-management workflows.
+
+## Public Forms
+
+Only forms marked as `published` are available through the public respondent interface.
+
+Draft forms return a not-found response through the public API.
+
+## SQLite
+
+SQLite was selected because it was explicitly specified in the assignment and provides a zero-configuration database suitable for local development and demonstration.
+
+## Response Storage
+
+Answers are stored as text values associated with their response and question.
+
+This allows the same response model to represent:
+
+* Text answers
+* Numbers
+* Choice values
+* Yes/No values
+* Ratings
+* Dates
+
+---
+
+# Performance / UX Considerations
+
+The builder uses debounced autosaving for frequently edited text fields.
+
+Instead of sending an API request for every keystroke while editing a question title or description, text changes are saved after a short debounce period.
+
+This prevents unnecessary API traffic and reduces UI lag while typing.
+
+The application also includes:
+
+* Loading states.
+* Empty states.
+* Error states.
+* Toast notifications.
+* Confirmation dialogs.
+* Responsive layouts.
+* Keyboard navigation.
+* Client/server validation.
+
+---
+
+# Testing & Verification
+
+The project was tested during development across:
+
+* Form creation.
+* Form editing.
+* Question creation.
+* Question editing.
+* Question deletion.
+* Question reordering.
+* Question autosave.
+* Form duplication.
+* Publish/unpublish.
+* Public form submission.
+* Required-field validation.
+* Response persistence.
+* Response statistics.
+* Individual response viewing.
+* CSV export.
+* Frontend TypeScript compilation.
+
+Frontend TypeScript verification:
+
+```bash
+npx --no-install tsc --noEmit
+```
+
+---
+
+# Future Improvements
+
+The following features are intentionally outside the current assignment scope or remain as potential extensions:
+
+* Logic jumps / conditional branching.
+* Webhook integrations.
+* Slack/Google Sheets integrations.
+* Creator authentication.
+* Team collaboration.
+* Multi-tenancy.
+* Custom form themes.
+* Advanced analytics.
+* Persistent production database.
+* Partial response recovery.
+* File uploads.
+* Dark mode.
+
+---
+
+# Assignment Scope
+
+This project focuses on reproducing the core Typeform workflow:
+
+```text
+Create Form
+     ↓
+Build Questions
+     ↓
+Configure Questions
+     ↓
+Preview
+     ↓
+Publish
+     ↓
+Share Public Link
+     ↓
+Collect Responses
+     ↓
+View Analytics
+     ↓
+Inspect Individual Responses
+     ↓
+Export Data
+```
+
+The implementation prioritizes the core user experience, clean separation between frontend and backend, API-driven persistence, validation, and a functional end-to-end workflow.
+
+---
+
+## Repository
+
+https://github.com/AnkurSingla780/typeform-clone
+
+## Live Application
+
+https://typeform-clone-steel.vercel.app/
+
+## Backend API
+
+https://typeform-clone-rpgx.onrender.com
+
+## Swagger API Documentation
+
+https://typeform-clone-rpgx.onrender.com/docs
